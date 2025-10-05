@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progressive Loading Test</title>
+    <link rel="stylesheet" href="styles_buyandselluk.css">
+    <style>
+        body { padding: 20px; font-family: Arial, sans-serif; }
+        .test-section { margin: 20px 0; padding: 20px; background: #f5f5f5; border-radius: 8px; }
+        .progress-indicator { margin: 10px 0; padding: 10px; background: #e3f2fd; border-radius: 4px; }
+        .listing-counter { font-size: 1.2rem; font-weight: bold; color: #2196f3; }
+        .status-message { margin: 5px 0; color: #666; }
+        button { padding: 10px 20px; background: #2196f3; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #1976d2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .listings-preview { max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+        .listing-item { padding: 8px; margin: 5px 0; background: white; border-radius: 4px; border-left: 3px solid #2196f3; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Progressive Loading Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Progressive Content Population</h2>
+        <p>This test simulates progressive loading where content appears as each page is scraped.</p>
+        
+        <button id="startTest" onclick="startProgressiveTest()">Start Progressive Loading Test</button>
+        <button id="startNormalTest" onclick="startNormalTest()">Start Normal Loading Test (for comparison)</button>
+        
+        <div class="progress-indicator" id="progressInfo" style="display: none;">
+            <div class="listing-counter" id="listingCount">0 listings loaded</div>
+            <div class="status-message" id="statusMessage">Ready to start...</div>
+        </div>
+        
+        <div class="listings-preview" id="listingsPreview" style="display: none;">
+            <h3>Loaded Listings (Live Preview):</h3>
+            <div id="listingsList"></div>
+        </div>
+    </div>
+    
+    <script src="scraper_buyandselluk.js"></script>
+    <script src="filter_buyandselluk.js"></script>
+    <script>
+        let scraper;
+        let totalLoadedListings = [];
+        
+        // Initialize scraper
+        try {
+            scraper = new AstroBuyAndSellScraper();
+            console.log('✅ Scraper initialized successfully');
+        } catch (error) {
+            console.error('❌ Failed to initialize scraper:', error);
+        }\n        \n        function updateProgress(count, status) {\n            const progressInfo = document.getElementById('progressInfo');\n            const listingCount = document.getElementById('listingCount');\n            const statusMessage = document.getElementById('statusMessage');\n            \n            progressInfo.style.display = 'block';\n            listingCount.textContent = `${count} listings loaded`;\n            statusMessage.textContent = status;\n        }\n        \n        function addListingsToPreview(newListings) {\n            const listingsPreview = document.getElementById('listingsPreview');\n            const listingsList = document.getElementById('listingsList');\n            \n            listingsPreview.style.display = 'block';\n            \n            newListings.forEach((listing, index) => {\n                const listingElement = document.createElement('div');\n                listingElement.className = 'listing-item';\n                listingElement.innerHTML = `\n                    <strong>#${listing.adNumber || 'N/A'}</strong> - ${(listing.description || 'No description').substring(0, 80)}...\n                    <br><small>Price: £${listing.price || 'N/A'} | Location: ${listing.location || 'N/A'}</small>\n                `;\n                listingsList.appendChild(listingElement);\n                \n                // Scroll to show new content\n                listingElement.scrollIntoView({ behavior: 'smooth', block: 'end' });\n            });\n        }\n        \n        async function startProgressiveTest() {\n            const startBtn = document.getElementById('startTest');\n            const listingsList = document.getElementById('listingsList');\n            \n            startBtn.disabled = true;\n            startBtn.textContent = 'Testing Progressive Loading...';\n            totalLoadedListings = [];\n            listingsList.innerHTML = '';\n            \n            try {\n                updateProgress(0, 'Starting progressive loading test...');\n                \n                // Load sample content and simulate progressive loading\n                const response = await fetch('./sample_content.html');\n                const html = await response.text();\n                \n                // Parse all listings first\n                const allListings = scraper.parseListings(html, 0);\n                console.log(`Parsed ${allListings.length} sample listings`);\n                \n                if (allListings.length === 0) {\n                    updateProgress(0, '❌ No listings found in sample content');\n                    return;\n                }\n                \n                // Simulate progressive loading by adding listings in batches\n                const batchSize = Math.max(1, Math.floor(allListings.length / 3)); // 3 batches\n                \n                for (let i = 0; i < allListings.length; i += batchSize) {\n                    const batch = allListings.slice(i, i + batchSize);\n                    totalLoadedListings = totalLoadedListings.concat(batch);\n                    \n                    // Simulate delay between batches\n                    if (i > 0) {\n                        await new Promise(resolve => setTimeout(resolve, 1500));\n                    }\n                    \n                    // Update progress\n                    const batchNumber = Math.floor(i / batchSize) + 1;\n                    updateProgress(\n                        totalLoadedListings.length,\n                        `✅ Loaded batch ${batchNumber} - ${batch.length} new listings added`\n                    );\n                    \n                    // Add new listings to preview\n                    addListingsToPreview(batch);\n                    \n                    console.log(`Progressive batch ${batchNumber}: ${batch.length} listings added. Total: ${totalLoadedListings.length}`);\n                }\n                \n                updateProgress(\n                    totalLoadedListings.length,\n                    `🎉 Progressive loading complete! Total: ${totalLoadedListings.length} listings`\n                );\n                \n            } catch (error) {\n                console.error('Progressive test error:', error);\n                updateProgress(0, `❌ Error: ${error.message}`);\n            } finally {\n                startBtn.disabled = false;\n                startBtn.textContent = 'Start Progressive Loading Test';\n            }\n        }\n        \n        async function startNormalTest() {\n            const startBtn = document.getElementById('startNormalTest');\n            const listingsList = document.getElementById('listingsList');\n            \n            startBtn.disabled = true;\n            startBtn.textContent = 'Testing Normal Loading...';\n            totalLoadedListings = [];\n            listingsList.innerHTML = '';\n            \n            try {\n                updateProgress(0, 'Starting normal loading test (wait for all content)...');\n                \n                // Simulate normal loading delay\n                await new Promise(resolve => setTimeout(resolve, 3000));\n                \n                // Load sample content\n                const response = await fetch('./sample_content.html');\n                const html = await response.text();\n                \n                // Parse all listings at once\n                const allListings = scraper.parseListings(html, 0);\n                totalLoadedListings = allListings;\n                \n                updateProgress(\n                    totalLoadedListings.length,\n                    `✅ Normal loading complete! All ${totalLoadedListings.length} listings loaded at once`\n                );\n                \n                // Add all listings to preview at once\n                addListingsToPreview(totalLoadedListings);\n                \n            } catch (error) {\n                console.error('Normal test error:', error);\n                updateProgress(0, `❌ Error: ${error.message}`);\n            } finally {\n                startBtn.disabled = false;\n                startBtn.textContent = 'Start Normal Loading Test (for comparison)';\n            }\n        }\n    </script>\n</body>\n</html>

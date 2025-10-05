@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progressive Loading Test</title>
+    <link rel="stylesheet" href="styles_buyandselluk.css">
+    <style>
+        body { padding: 20px; font-family: Arial, sans-serif; }
+        .test-section { margin: 20px 0; padding: 20px; background: #f5f5f5; border-radius: 8px; }
+        .progress-indicator { margin: 10px 0; padding: 10px; background: #e3f2fd; border-radius: 4px; }
+        .listing-counter { font-size: 1.2rem; font-weight: bold; color: #2196f3; }
+        .status-message { margin: 5px 0; color: #666; }
+        button { padding: 10px 20px; background: #2196f3; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #1976d2; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .listings-preview { max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+        .listing-item { padding: 8px; margin: 5px 0; background: white; border-radius: 4px; border-left: 3px solid #2196f3; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Progressive Loading Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Progressive Content Population</h2>
+        <p>This test demonstrates how content appears progressively as each page is scraped, versus waiting for all content to load.</p>
+        
+        <button id="startTest" onclick="startProgressiveTest()">Start Progressive Loading Test</button>
+        <button id="startNormalTest" onclick="startNormalTest()">Start Normal Loading Test (for comparison)</button>
+        
+        <div class="progress-indicator" id="progressInfo" style="display: none;">
+            <div class="listing-counter" id="listingCount">0 listings loaded</div>
+            <div class="status-message" id="statusMessage">Ready to start...</div>
+        </div>
+        
+        <div class="listings-preview" id="listingsPreview" style="display: none;">
+            <h3>Loaded Listings (Live Preview):</h3>
+            <div id="listingsList"></div>
+        </div>
+    </div>
+    
+    <script src="scraper_buyandselluk.js"></script>
+    <script src="filter_buyandselluk.js"></script>
+    <script>
+        let scraper;
+        let totalLoadedListings = [];
+        
+        // Initialize scraper
+        try {
+            scraper = new AstroBuyAndSellScraper();
+            console.log('Scraper initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize scraper:', error);
+        }
+        
+        function updateProgress(count, status) {
+            const progressInfo = document.getElementById('progressInfo');
+            const listingCount = document.getElementById('listingCount');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            progressInfo.style.display = 'block';
+            listingCount.textContent = count + ' listings loaded';
+            statusMessage.textContent = status;
+        }
+        
+        function addListingsToPreview(newListings) {
+            const listingsPreview = document.getElementById('listingsPreview');
+            const listingsList = document.getElementById('listingsList');
+            
+            listingsPreview.style.display = 'block';
+            
+            newListings.forEach(function(listing) {
+                const listingElement = document.createElement('div');
+                listingElement.className = 'listing-item';
+                const description = (listing.description || 'No description').substring(0, 80);
+                listingElement.innerHTML = '<strong>#' + (listing.adNumber || 'N/A') + '</strong> - ' + description + '...<br><small>Price: £' + (listing.price || 'N/A') + ' | Location: ' + (listing.location || 'N/A') + '</small>';
+                listingsList.appendChild(listingElement);
+                
+                // Scroll to show new content
+                listingElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            });
+        }
+        
+        async function startProgressiveTest() {
+            const startBtn = document.getElementById('startTest');
+            const listingsList = document.getElementById('listingsList');
+            
+            startBtn.disabled = true;
+            startBtn.textContent = 'Testing Progressive Loading...';
+            totalLoadedListings = [];
+            listingsList.innerHTML = '';
+            
+            try {
+                updateProgress(0, 'Starting progressive loading test...');
+                
+                // Load sample content
+                const response = await fetch('./sample_content.html');
+                const html = await response.text();
+                
+                // Parse all listings first
+                const allListings = scraper.parseListings(html, 0);
+                console.log('Parsed ' + allListings.length + ' sample listings');
+                
+                if (allListings.length === 0) {
+                    updateProgress(0, 'No listings found in sample content');
+                    return;
+                }
+                
+                // Simulate progressive loading by adding listings in batches
+                const batchSize = Math.max(1, Math.floor(allListings.length / 3)); // 3 batches
+                
+                for (let i = 0; i < allListings.length; i += batchSize) {
+                    const batch = allListings.slice(i, i + batchSize);
+                    totalLoadedListings = totalLoadedListings.concat(batch);
+                    
+                    // Simulate delay between batches
+                    if (i > 0) {
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                    }
+                    
+                    // Update progress
+                    const batchNumber = Math.floor(i / batchSize) + 1;
+                    updateProgress(
+                        totalLoadedListings.length,
+                        'Loaded batch ' + batchNumber + ' - ' + batch.length + ' new listings added'
+                    );
+                    
+                    // Add new listings to preview
+                    addListingsToPreview(batch);
+                    
+                    console.log('Progressive batch ' + batchNumber + ': ' + batch.length + ' listings added. Total: ' + totalLoadedListings.length);
+                }
+                
+                updateProgress(
+                    totalLoadedListings.length,
+                    'Progressive loading complete! Total: ' + totalLoadedListings.length + ' listings'
+                );
+                
+            } catch (error) {
+                console.error('Progressive test error:', error);
+                updateProgress(0, 'Error: ' + error.message);
+            } finally {
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start Progressive Loading Test';
+            }
+        }
+        
+        async function startNormalTest() {
+            const startBtn = document.getElementById('startNormalTest');
+            const listingsList = document.getElementById('listingsList');
+            
+            startBtn.disabled = true;
+            startBtn.textContent = 'Testing Normal Loading...';
+            totalLoadedListings = [];
+            listingsList.innerHTML = '';
+            
+            try {
+                updateProgress(0, 'Starting normal loading test (wait for all content)...');
+                
+                // Simulate normal loading delay
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // Load sample content
+                const response = await fetch('./sample_content.html');
+                const html = await response.text();
+                
+                // Parse all listings at once
+                const allListings = scraper.parseListings(html, 0);
+                totalLoadedListings = allListings;
+                
+                updateProgress(
+                    totalLoadedListings.length,
+                    'Normal loading complete! All ' + totalLoadedListings.length + ' listings loaded at once'
+                );
+                
+                // Add all listings to preview at once
+                addListingsToPreview(totalLoadedListings);
+                
+            } catch (error) {
+                console.error('Normal test error:', error);
+                updateProgress(0, 'Error: ' + error.message);
+            } finally {
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start Normal Loading Test (for comparison)';
+            }
+        }
+    </script>
+</body>
+</html>

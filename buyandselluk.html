@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Astronomy Buy & Sell Enhanced</title>
+    <link rel="stylesheet" href="styles_buyandselluk.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>UK Astronomy Buy & Sell Enhanced</h1>
+            <p>Improved browsing experience for <a href="https://www.astrobuysell.com/uk/" target="_blank">astrobuysell.com/uk</a></p>
+            <div class="header-controls">
+                <button id="test-proxies-btn" class="btn btn-secondary">Test Proxies</button>
+                <button id="refresh-btn" class="btn btn-primary">Refresh Data</button>
+                <button id="theme-toggle" class="btn btn-secondary">🌙</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <aside class="filters-panel">
+                <h3>Search & Filters</h3>
+                
+                <div class="filter-group">
+                    <label for="search-input">Search:</label>
+                    <input type="text" id="search-input" placeholder="Search description or location...">
+                </div>
+
+                <div class="filter-group">
+                    <label for="ad-type-filter">Ad Type:</label>
+                    <select id="ad-type-filter">
+                        <option value="">All Types</option>
+                        <option value="For Sale">For Sale</option>
+                        <option value="Wanted">Wanted</option>
+                        <option value="Notice">Notice</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="status-filter">Status:</label>
+                    <select id="status-filter">
+                        <option value="">All Statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Sold">Sold</option>
+                        <option value="Sale Pending">Sale Pending</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Price Range (£):</label>
+                    <div class="price-range">
+                        <input type="number" id="min-price" placeholder="Min" min="0">
+                        <span>to</span>
+                        <input type="number" id="max-price" placeholder="Max" min="0">
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label for="location-filter">Location:</label>
+                    <input type="text" id="location-filter" placeholder="Filter by location...">
+                </div>
+
+                <div class="filter-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="has-photo-filter">
+                        Has Photo Only
+                    </label>
+                </div>
+
+                <div class="filter-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="featured-only-filter">
+                        Featured Ads Only
+                    </label>
+                </div>
+
+                <div class="filter-group">
+                    <label for="sort-select">Sort By:</label>
+                    <select id="sort-select">
+                        <option value="date-desc">Newest First</option>
+                        <option value="date-asc">Oldest First</option>
+                        <option value="price-desc">Price High to Low</option>
+                        <option value="price-asc">Price Low to High</option>
+                        <option value="ad-number">Ad Number</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="parallel-loading" checked>
+                        🚀 Parallel Loading (Faster)
+                    </label>
+                    <small class="help-text">Load multiple pages simultaneously for faster results</small>
+                </div>
+
+                <button id="clear-filters" class="btn btn-secondary">Clear All Filters</button>
+            </aside>
+
+            <main class="listings-container">
+                <div class="listings-header">
+                    <div class="results-info">
+                        <span id="results-count">Initializing...</span>
+                        <div class="proxy-status" id="proxy-status" style="display: none;">
+                            <span id="proxy-info">🔗 Proxy: Not connected</span>
+                        </div>
+                        <div class="loading-progress" id="loading-progress" style="display: none;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <span id="progress-text">Loading page 1...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="listings-grid" class="listings-grid">
+                    <!-- Listings will be populated here -->
+                </div>
+
+                <div id="error-message" class="error-message" style="display: none;">
+                    <p>Failed to load listings. This might be due to CORS restrictions.</p>
+                    <p>Try using a CORS proxy or browser extension to bypass this limitation.</p>
+                    <button id="retry-btn" class="btn btn-primary">Retry</button>
+                </div>
+
+                <div id="load-more-container" style="display: none;">
+                    <button id="load-more-btn" class="btn btn-primary">Load More</button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="scraper_buyandselluk.js"></script>
+    <script src="filter_buyandselluk.js"></script>
+    <script src="app_buyandselluk.js"></script>
+</body>
+</html>

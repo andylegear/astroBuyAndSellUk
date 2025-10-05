@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Debug Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        #results {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .content-preview {
+            max-height: 400px;
+            overflow: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: #f8f9fa;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Content Debug Tool</h1>
+        <p>This tool fetches the actual content from astrobuysell.com via proxy and shows you exactly what we're getting.</p>
+        
+        <div>
+            <button onclick="fetchAndAnalyze()">Fetch Page 0 Content</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const targetUrl = 'https://www.astrobuysell.com/uk/propview.php?minprice=0&maxprice=1000000000000000&cur_page=0&sort=id+DESC';
+        const workingProxy = 'https://api.allorigins.win/get?url=';
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function fetchAndAnalyze() {
+            const button = document.querySelector('button');
+            button.disabled = true;
+            button.textContent = 'Fetching...';
+
+            try {
+                addResult('🚀 Fetching content from astrobuysell.com via proxy...', 'warning');
+                
+                const proxyUrl = workingProxy + encodeURIComponent(targetUrl);
+                addResult(`📡 Using proxy URL: ${proxyUrl}`, 'info');
+
+                const response = await fetch(proxyUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+
+                if (response.ok) {
+                    const jsonData = await response.json();
+                    const html = jsonData.contents;
+                    
+                    addResult(`✅ Successfully fetched content!`, 'success');
+                    addResult(`📊 Content length: ${html.length} characters`, 'success');
+                    addResult(`📊 Status code from target: ${jsonData.status?.http_code || 'unknown'}`, 'info');
+
+                    // Analyze the content
+                    analyzeContent(html);
+
+                } else {
+                    addResult(`❌ Fetch failed: HTTP ${response.status} - ${response.statusText}`, 'error');
+                }
+
+            } catch (error) {
+                addResult(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Fetch Page 0 Content';
+            }
+        }
+
+        function analyzeContent(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // Check page title
+            const title = doc.querySelector('title')?.textContent || 'No title';
+            addResult(`📄 Page title: "${title}"`, 'info');
+
+            // Check for errors or redirects
+            if (title.toLowerCase().includes('error') || title.toLowerCase().includes('not found')) {
+                addResult(`⚠️  Page title suggests an error!`, 'warning');
+            }
+
+            // Count all tables
+            const allTables = doc.querySelectorAll('table');
+            addResult(`📊 Found ${allTables.length} total table(s)`, 'info');
+
+            // Check for target table
+            const tables = doc.querySelectorAll('table[border="1"][cellspacing="1"][cellpadding="2"]');
+            addResult(`🎯 Found ${tables.length} table(s) with border/cellspacing/cellpadding attributes`, 'info');
+
+            let targetTable = null;
+            let targetTableIndex = -1;
+
+            for (let i = 0; i < tables.length; i++) {
+                const table = tables[i];
+                const style = table.getAttribute('style');
+                const bgcolor = table.getAttribute('bgcolor');
+                
+                addResult(`📋 Table ${i + 1}: style="${style || 'none'}", bgcolor="${bgcolor || 'none'}"`, 'info');
+                
+                if (style && style.includes('border-collapse: collapse') && bgcolor === '#C0C0C0') {
+                    targetTable = table;
+                    targetTableIndex = i;
+                    addResult(`✅ Found target listings table at index ${i + 1}!`, 'success');
+                    break;
+                }
+            }
+
+            if (targetTable) {
+                const rows = targetTable.querySelectorAll('tr');
+                addResult(`📊 Target table has ${rows.length} rows`, 'success');
+                
+                if (rows.length > 1) {
+                    const firstDataRow = rows[1]; // Skip header
+                    const cells = firstDataRow.querySelectorAll('td');
+                    addResult(`📊 First data row has ${cells.length} cells`, 'success');
+                    
+                    if (cells.length >= 8) {
+                        addResult(`📊 Sample data from first row:`, 'info');
+                        addResult(`  - Ad Number: "${cells[0]?.textContent?.trim() || 'empty'}"`, 'info');
+                        addResult(`  - Ad Type: "${cells[1]?.textContent?.trim() || 'empty'}"`, 'info');
+                        addResult(`  - Status: "${cells[2]?.textContent?.trim() || 'empty'}"`, 'info');
+                        addResult(`  - Description: "${cells[4]?.textContent?.trim()?.substring(0, 50) || 'empty'}..."`, 'info');
+                    }
+                }
+            } else {
+                addResult(`❌ No target listings table found!`, 'error');
+                
+                // Show all table info for debugging
+                allTables.forEach((table, index) => {
+                    const info = {
+                        border: table.getAttribute('border'),
+                        cellspacing: table.getAttribute('cellspacing'),
+                        cellpadding: table.getAttribute('cellpadding'),
+                        style: table.getAttribute('style'),
+                        bgcolor: table.getAttribute('bgcolor'),
+                        class: table.getAttribute('class'),
+                        id: table.getAttribute('id'),
+                        rows: table.querySelectorAll('tr').length
+                    };
+                    addResult(`🔍 Table ${index + 1} attributes: ${JSON.stringify(info)}`, 'warning');
+                });
+            }
+
+            // Show a preview of the content
+            addResult(`📋 HTML Content Preview (first 2000 chars):`, 'info');
+            const preview = document.createElement('div');
+            preview.className = 'content-preview';
+            preview.textContent = html.substring(0, 2000) + (html.length > 2000 ? '\n\n... (truncated)' : '');
+            document.getElementById('results').appendChild(preview);
+
+            // Add full content in a textarea for manual inspection
+            addResult(`📋 Full HTML Content (for manual inspection):`, 'info');
+            const textarea = document.createElement('textarea');
+            textarea.value = html;
+            textarea.readonly = true;
+            document.getElementById('results').appendChild(textarea);
+        }
+
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            addResult('🎯 Content Debug Tool loaded. Click "Fetch Page 0 Content" to analyze what we\'re getting from the proxy.', 'warning');
+        });
+    </script>
+</body>
+</html>

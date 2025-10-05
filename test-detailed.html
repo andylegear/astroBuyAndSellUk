@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Parser Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .error { background-color: #ffebee; color: #c62828; }
+        .success { background-color: #e8f5e8; color: #2e7d32; }
+        pre { background-color: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Parser Test Results</h1>
+    <div id="status">Loading...</div>
+    <div id="results"></div>
+    
+    <script src="scraper_buyandselluk.js"></script>
+    <script>
+        const statusDiv = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            resultsDiv.appendChild(div);
+        }
+        
+        async function runTest() {
+            try {
+                statusDiv.innerHTML = 'Creating scraper instance...';
+                addResult('✓ Creating AstroBuyAndSellScraper instance...', 'success');
+                
+                const scraper = new AstroBuyAndSellScraper();
+                addResult('✓ Scraper instance created successfully', 'success');
+                
+                statusDiv.innerHTML = 'Loading sample content...';
+                addResult('📄 Loading sample_content.html...', 'info');
+                
+                const response = await fetch('./sample_content.html');
+                const html = await response.text();
+                
+                addResult(`✓ Sample content loaded (${html.length} characters)`, 'success');
+                
+                statusDiv.innerHTML = 'Parsing content...';
+                addResult('🔍 Parsing HTML content...', 'info');
+                
+                const listings = scraper.parseListings(html, 0);
+                
+                addResult(`✓ Parsing completed! Found ${listings.length} listings`, 'success');
+                
+                if (listings.length > 0) {
+                    addResult('<h3>First listing sample:</h3>', 'info');
+                    addResult(`<pre>${JSON.stringify(listings[0], null, 2)}</pre>`, 'info');
+                    
+                    addResult('<h3>All listings summary:</h3>', 'info');
+                    listings.forEach((listing, index) => {
+                        addResult(`${index + 1}. ${listing.title} - £${listing.price} (${listing.category})`, 'info');
+                    });
+                }
+                
+                statusDiv.innerHTML = '✅ Test completed successfully!';
+                
+            } catch (error) {
+                console.error('Test failed:', error);
+                addResult(`❌ Error: ${error.message}`, 'error');
+                addResult(`<pre>${error.stack}</pre>`, 'error');
+                statusDiv.innerHTML = '❌ Test failed - see errors below';
+            }
+        }
+        
+        // Run test when page loads
+        window.addEventListener('load', runTest);
+    </script>
+</body>
+</html>

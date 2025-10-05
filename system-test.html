@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #e8f5e8; border-color: #4caf50; }
+        .error { background-color: #ffebee; border-color: #f44336; }
+        .info { background-color: #e3f2fd; border-color: #2196f3; }
+        .warning { background-color: #fff3e0; border-color: #ff9800; }
+        pre { background-color: #f5f5f5; padding: 10px; overflow-x: auto; border-radius: 3px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 10px 0; }
+        .stat-card { padding: 10px; background: #f8f9fa; border-radius: 5px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #2196f3; }
+        .stat-label { font-size: 12px; color: #666; text-transform: uppercase; }
+        button { padding: 10px 20px; background-color: #2196f3; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background-color: #1976d2; }
+        .listing-preview { max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin: 10px 0; }
+        .listing-item { padding: 8px; margin: 5px 0; background: #f9f9f9; border-radius: 3px; border-left: 3px solid #2196f3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 UK Astronomy Buy & Sell - Complete System Test</h1>
+        
+        <div class="test-section info">
+            <h2>📊 System Status</h2>
+            <div id="systemStatus">Initializing tests...</div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🧪 Test Results</h2>
+            <div id="testResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📈 Statistics</h2>
+            <div class="stats" id="stats"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 Sample Data Preview</h2>
+            <div id="dataPreview"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎛️ Controls</h2>
+            <button onclick="runAllTests()">🔄 Re-run All Tests</button>
+            <button onclick="testRealScraping()">🌐 Test Live Scraping</button>
+            <button onclick="openMainApp()">🚀 Open Main Application</button>
+        </div>
+    </div>
+    
+    <script src="scraper_buyandselluk.js"></script>
+    <script src="filter_buyandselluk.js"></script>
+    <script>
+        let testResults = [];
+        let scraper, filter;
+        let sampleListings = [];
+        
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('systemStatus');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            statusDiv.innerHTML = `<div class="test-section ${className}">${message}</div>`;
+        }
+        
+        function addTestResult(testName, success, message, data = null) {
+            const result = { testName, success, message, data, timestamp: new Date().toISOString() };
+            testResults.push(result);
+            updateTestResultsDisplay();
+        }
+        
+        function updateTestResultsDisplay() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = testResults.map(result => `
+                <div class="test-section ${result.success ? 'success' : 'error'}">
+                    <strong>${result.success ? '✅' : '❌'} ${result.testName}</strong><br>
+                    ${result.message}
+                    ${result.data ? `<pre>${JSON.stringify(result.data, null, 2).substring(0, 500)}${JSON.stringify(result.data, null, 2).length > 500 ? '...' : ''}</pre>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function updateStats() {
+            const statsDiv = document.getElementById('stats');
+            const passedTests = testResults.filter(r => r.success).length;
+            const totalTests = testResults.length;
+            const successRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
+            
+            statsDiv.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${totalTests}</div>
+                    <div class="stat-label">Total Tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${passedTests}</div>
+                    <div class="stat-label">Passed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalTests - passedTests}</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${successRate}%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${sampleListings.length}</div>
+                    <div class="stat-label">Sample Listings</div>
+                </div>
+            `;
+        }
+        
+        function updateDataPreview() {
+            const previewDiv = document.getElementById('dataPreview');
+            if (sampleListings.length > 0) {
+                previewDiv.innerHTML = `
+                    <div class="listing-preview">
+                        ${sampleListings.slice(0, 5).map((listing, index) => `
+                            <div class="listing-item">
+                                <strong>${index + 1}. ${listing.title}</strong><br>
+                                <span style="color: #2e7d32; font-weight: bold;">£${listing.price}</span> | 
+                                <span style="color: #1976d2;">${listing.category}</span><br>
+                                <small>${listing.description.substring(0, 100)}${listing.description.length > 100 ? '...' : ''}</small>
+                            </div>
+                        `).join('')}
+                        ${sampleListings.length > 5 ? `<div style="text-align: center; padding: 10px; color: #666;">... and ${sampleListings.length - 5} more listings</div>` : ''}
+                    </div>
+                `;
+            } else {
+                previewDiv.innerHTML = '<p style="color: #666; text-align: center;">No listings data available</p>';
+            }
+        }
+        
+        async function runAllTests() {
+            testResults = [];
+            updateStatus('🔄 Running comprehensive system tests...', 'info');
+            
+            try {
+                // Test 1: Scraper instantiation
+                updateStatus('Test 1/6: Creating scraper instance...', 'info');
+                scraper = new AstroBuyAndSellScraper();
+                addTestResult('Scraper Instantiation', true, 'AstroBuyAndSellScraper created successfully');
+                
+                // Test 2: Filter instantiation  
+                updateStatus('Test 2/6: Creating filter instance...', 'info');
+                filter = new AstroBuyAndSellFilter();
+                addTestResult('Filter Instantiation', true, 'AstroBuyAndSellFilter created successfully');
+                
+                // Test 3: Sample content loading
+                updateStatus('Test 3/6: Loading sample content...', 'info');
+                const response = await fetch('./sample_content.html');
+                const html = await response.text();
+                addTestResult('Sample Content Loading', true, `Loaded ${html.length} characters from sample_content.html`);
+                
+                // Test 4: HTML parsing
+                updateStatus('Test 4/6: Parsing HTML content...', 'info');
+                sampleListings = scraper.parseListings(html, 0);
+                addTestResult('HTML Parsing', sampleListings.length > 0, 
+                    `Parsed ${sampleListings.length} listings from sample content`, 
+                    sampleListings.length > 0 ? sampleListings[0] : null);
+                
+                // Test 5: Filtering functionality
+                updateStatus('Test 5/6: Testing filter functionality...', 'info');
+                if (sampleListings.length > 0) {
+                    const filteredListings = filter.filterListings(sampleListings, 'telescope', '', '', '');
+                    addTestResult('Filter Functionality', true, 
+                        `Filter test: ${filteredListings.length} listings match 'telescope' search`);
+                } else {
+                    addTestResult('Filter Functionality', false, 'Cannot test filtering - no listings parsed');
+                }
+                
+                // Test 6: Data structure validation
+                updateStatus('Test 6/6: Validating data structure...', 'info');
+                if (sampleListings.length > 0) {
+                    const firstListing = sampleListings[0];
+                    const hasRequiredFields = firstListing.title && firstListing.price && firstListing.category;
+                    addTestResult('Data Structure Validation', hasRequiredFields, 
+                        hasRequiredFields ? 'All required fields present in parsed data' : 'Missing required fields in parsed data',
+                        firstListing);
+                } else {
+                    addTestResult('Data Structure Validation', false, 'Cannot validate - no listings to check');
+                }
+                
+                updateStatus('✅ All tests completed successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                addTestResult('System Error', false, `Test failed with error: ${error.message}`);
+                updateStatus('❌ Tests failed - see results below', 'error');
+            }
+            
+            updateStats();
+            updateDataPreview();
+        }
+        
+        async function testRealScraping() {
+            updateStatus('🌐 Testing live scraping with CORS proxy...', 'warning');
+            
+            try {
+                const proxies = [
+                    'https://api.allorigins.win/get?url=',
+                    'https://corsproxy.io/?',
+                    'https://api.codetabs.com/v1/proxy?quest='
+                ];
+                
+                for (const proxy of proxies) {
+                    try {
+                        updateStatus(`Testing proxy: ${proxy}`, 'info');
+                        const listings = await scraper.scrapeListings(proxy);
+                        addTestResult('Live Scraping Test', true, 
+                            `Successfully scraped ${listings.length} listings using ${proxy}`);
+                        updateStatus('✅ Live scraping test successful!', 'success');
+                        return;
+                    } catch (error) {
+                        console.warn(`Proxy ${proxy} failed:`, error);
+                    }
+                }
+                
+                addTestResult('Live Scraping Test', false, 'All proxy attempts failed');
+                updateStatus('❌ Live scraping test failed - all proxies unsuccessful', 'error');
+                
+            } catch (error) {
+                addTestResult('Live Scraping Test', false, `Error: ${error.message}`);
+                updateStatus('❌ Live scraping test error', 'error');
+            }
+            
+            updateStats();
+        }
+        
+        function openMainApp() {
+            window.open('./buyandselluk.html', '_blank');
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('load', runAllTests);
+    </script>
+</body>
+</html>

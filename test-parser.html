@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parser Test</title>
+</head>
+<body>
+    <h1>Testing Updated Parser</h1>
+    <div id="results"></div>
+    
+    <script src="scraper_buyandselluk.js"></script>
+    <script>
+        async function testParser() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Create scraper instance
+                const scraper = new AstroBuyAndSellScraper();
+                
+                // Test with the sample content
+                const response = await fetch('./sample_content.html');
+                const html = await response.text();
+                
+                console.log('Testing parser with sample content...');
+                const listings = scraper.parseListings(html, 0);
+                
+                results.innerHTML = `
+                    <h2>Parse Results:</h2>
+                    <p><strong>Total listings found:</strong> ${listings.length}</p>
+                    <h3>Sample listings:</h3>
+                    <pre>${JSON.stringify(listings.slice(0, 3), null, 2)}</pre>
+                    <p>Check console for detailed logs</p>
+                `;
+                
+                console.log('Parsed listings:', listings);
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                results.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Run test on page load
+        window.addEventListener('load', testParser);
+    </script>
+</body>
+</html>

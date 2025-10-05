@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Proxy Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        #results {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 CORS Proxy Test Tool</h1>
+        <p>This tool tests different CORS proxy services to see which ones can access astrobuysell.com.</p>
+        
+        <div>
+            <button onclick="testAllProxies()">Test All Proxies</button>
+            <button onclick="testDirect()">Test Direct Access</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div id="results"></div>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 4px;">
+            <h3>📝 Troubleshooting Tips:</h3>
+            <ol>
+                <li><strong>Browser Extensions:</strong> Install "CORS Unblock" or "Disable CORS" extension</li>
+                <li><strong>Chrome Flags:</strong> Launch Chrome with <code>--disable-web-security --user-data-dir="c:/temp/chrome"</code></li>
+                <li><strong>Network Issues:</strong> Check if you can access <a href="https://www.astrobuysell.com/uk/" target="_blank">astrobuysell.com</a> directly</li>
+                <li><strong>Proxy Limits:</strong> Public proxies may have rate limits or be temporarily down</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const targetUrl = 'https://www.astrobuysell.com/uk/propview.php?minprice=0&maxprice=1000000000000000&cur_page=0&sort=id+DESC';
+        
+        const corsProxies = [
+            { name: 'AllOrigins (JSON)', url: 'https://api.allorigins.win/get?url=' },
+            { name: 'AllOrigins (Raw)', url: 'https://api.allorigins.win/raw?url=' },
+            { name: 'CorsProxy.io', url: 'https://corsproxy.io/?' },
+            { name: 'CORS Anywhere', url: 'https://cors-anywhere.herokuapp.com/' },
+            { name: 'ThingProxy', url: 'https://thingproxy.freeboard.io/fetch/' },
+            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=' }
+        ];
+
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testDirect() {
+            addResult('🔍 Testing direct access to astrobuysell.com...', 'warning');
+            
+            try {
+                const response = await fetch(targetUrl);
+                if (response.ok) {
+                    const text = await response.text();
+                    addResult(`✅ Direct access works! (${text.length} characters)`, 'success');
+                } else {
+                    addResult(`❌ Direct access failed: HTTP ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Direct access failed: ${error.message}`, 'error');
+                addResult('ℹ️  This is expected due to CORS policy. Trying proxies...', 'warning');
+            }
+        }
+
+        async function testProxy(proxy) {
+            const startTime = Date.now();
+            let proxyUrl;
+            
+            if (proxy.name.includes('AllOrigins (JSON)')) {
+                proxyUrl = proxy.url + encodeURIComponent(targetUrl);
+            } else {
+                proxyUrl = proxy.url + encodeURIComponent(targetUrl);
+            }
+
+            try {
+                addResult(`🔄 Testing ${proxy.name}...`);
+                
+                const response = await fetch(proxyUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+
+                const responseTime = Date.now() - startTime;
+
+                if (response.ok) {
+                    let content;
+                    
+                    if (proxy.name.includes('AllOrigins (JSON)')) {
+                        const json = await response.json();
+                        content = json.contents;
+                    } else {
+                        content = await response.text();
+                    }
+
+                    const isValid = content && content.includes('<table') && content.length > 1000;
+                    
+                    if (isValid) {
+                        addResult(`✅ ${proxy.name}: SUCCESS! (${responseTime}ms, ${content.length} chars)`, 'success');
+                        return true;
+                    } else {
+                        addResult(`⚠️  ${proxy.name}: Response received but content seems invalid (${content.length} chars)`, 'warning');
+                        return false;
+                    }
+                } else {
+                    addResult(`❌ ${proxy.name}: HTTP ${response.status} - ${response.statusText}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                addResult(`❌ ${proxy.name}: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testAllProxies() {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            addResult('🚀 Starting comprehensive proxy test...', 'warning');
+            
+            let workingCount = 0;
+            
+            for (const proxy of corsProxies) {
+                const works = await testProxy(proxy);
+                if (works) workingCount++;
+                
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            addResult(`🏁 Test completed! ${workingCount}/${corsProxies.length} proxies working.`, 
+                     workingCount > 0 ? 'success' : 'error');
+
+            if (workingCount === 0) {
+                addResult('💡 Try installing a CORS browser extension or check the troubleshooting tips below.', 'warning');
+            }
+
+            buttons.forEach(btn => btn.disabled = false);
+        }
+
+        // Auto-run basic test on page load
+        window.addEventListener('load', () => {
+            addResult('🎯 CORS Proxy Test Tool loaded. Click "Test All Proxies" to begin.', 'warning');
+        });
+    </script>
+</body>
+</html>
