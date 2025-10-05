@@ -697,6 +697,7 @@ The target website may also be temporarily unavailable or blocking requests.
         const refreshBtn = document.getElementById('refresh-btn');
         const loadingProgress = document.getElementById('loading-progress');
         const listingsGrid = document.getElementById('listings-grid');
+        const initialSpinner = document.getElementById('initial-loading-spinner');
 
         if (refreshBtn) {
             refreshBtn.disabled = loading;
@@ -709,6 +710,13 @@ The target website may also be temporarily unavailable or blocking requests.
 
         if (listingsGrid && loading) {
             listingsGrid.classList.toggle('loading', loading);
+        }
+
+        // Show/hide initial loading spinner based on whether we have any listings
+        if (initialSpinner) {
+            const hasListings = listingsGrid && listingsGrid.querySelector('.listing-card');
+            const shouldShowSpinner = loading && !hasListings;
+            initialSpinner.style.display = shouldShowSpinner ? 'flex' : 'none';
         }
     }
 
@@ -758,7 +766,13 @@ The target website may also be temporarily unavailable or blocking requests.
      */
     renderListings(listings) {
         const listingsGrid = document.getElementById('listings-grid');
+        const initialSpinner = document.getElementById('initial-loading-spinner');
         if (!listingsGrid) return;
+
+        // Hide initial loading spinner once we have content to show
+        if (initialSpinner) {
+            initialSpinner.style.display = 'none';
+        }
 
         if (listings.length === 0) {
             listingsGrid.innerHTML = `
